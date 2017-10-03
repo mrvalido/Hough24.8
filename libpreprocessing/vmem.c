@@ -258,8 +258,8 @@ bool preprocessing_vmem_isProcessingSizeValid(uint32_t sdram, uint16_t rows,
     {
         return false;
     }
-   else if (((uint32_t)(rows) * cols * sizeof(int32_t)) > size)
-    	// else if (((uint32_t)(rows) * cols ) > size)
+   //else if (((uint32_t)(rows) * cols * sizeof(int32_t)) > size)
+    else if (((uint32_t)(rows) * cols ) > size)
     {
         printf("Invalid processing size %u for related size %u of source "
                 "address %u\n", (unsigned int)(sizeof(int32_t)) * rows * cols,

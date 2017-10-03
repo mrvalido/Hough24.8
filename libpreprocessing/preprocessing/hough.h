@@ -22,6 +22,7 @@ int preprocessing_hough(int32_t sdSrc,uint32_t sdDst, uint16_t rows,
 		uint16_t cols, unsigned int radio , int disp_max, float step);
 int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 		uint16_t cols, unsigned int Xmin,unsigned int Xmax, float r2, float step);
+int preprocessing_zero(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst);
 int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
-        uint32_t sdDst, int16_t indice);
+        uint32_t sdDst, int16_t index);
 #endif /* LIBPREPROCESSING_PREPROCESSING_HOUGH_H_ */

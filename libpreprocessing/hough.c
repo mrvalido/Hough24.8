@@ -108,13 +108,14 @@ int preprocessing_arith_abs(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32
     {
         for (unsigned int c = 0; c < cols; c++)
         {
+
             p = r * cols + c;
 
             // Check for valid pointer position.
             PREPROCESSING_DEF_CHECK_POINTER(src, p, size)
             PREPROCESSING_DEF_CHECK_POINTER(dst, p, size)
 			if (src[p]<0)
-				dst[p]=eve_fp_multiply32(src[p],-256,FP32_FWL);
+				dst[p]=eve_fp_multiply32(src[p],-256,FP32_FWL);		//If negative multiply by -1(-256) in 24.8 format
 			else
 				dst[p]=src[p];
 
@@ -282,7 +283,6 @@ int preprocessing_ana_over_eq_Thresh(uint32_t sdSrc, uint16_t rows, uint16_t col
     int status = PREPROCESSING_SUCCESSFUL;
     unsigned int size = (unsigned int)(rows) * cols;
     unsigned int p = 0;
-    int32_t thresh2;
 
     const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
     int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
@@ -293,8 +293,7 @@ int preprocessing_ana_over_eq_Thresh(uint32_t sdSrc, uint16_t rows, uint16_t col
     {
         return PREPROCESSING_INVALID_SIZE;
     }
-    thresh2=eve_fp_add32(thresh, eve_fp_int2s32(300, FP32_FWL));
-    printf("Threshold 2222222 ========  = %f  \n",  eve_fp_signed32ToDouble(thresh2, FP32_FWL));
+
     // Process.
     for (unsigned int r = 0; r < rows; r++)
     {
@@ -385,6 +384,7 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 					det=r2-(c-a)*(c-a);//det to loop over xc and compute yc
 					det1=r2-(r-a)*(r-a);//de1t to loop over yc and compute xc
 
+
 					//yc estimation from xc loop
 					if (det>0){
 						b=((float)r-sqrt(det));//yc
@@ -472,7 +472,7 @@ int preprocessing_zero(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sd
 /*****************************************************************************/
 
 int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
-        uint32_t sdDst, int16_t indice)
+        uint32_t sdDst, int16_t index)
 {
     int32_t max = EVE_FP32_NAN;
     unsigned int size = (unsigned int)(rows) * cols;
@@ -511,12 +511,14 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
         }
     }
 
-    if(eve_fp_compare32(dst + indice, &max) == -1){
-    	dst[indice] = max;
-    	dst[indice+1] = maxX;
-    	dst[indice+2] = maxY;
-    	printf("%d   %d   %d\n", max, maxX, maxY);	//OJO Pasarlo a punto fijo
+    if(eve_fp_compare32(dst + index, &max) == -1){
+    	dst[index] = max;
+    	dst[index+1] = maxX;
+    	dst[index+2] = maxY;
+
     }
+
+    printf("%d   %d   %d\n", max, maxX, maxY);	//OJO Pasarlo a punto fijo
     return 0;
 }
 
