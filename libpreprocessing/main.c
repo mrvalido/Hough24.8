@@ -31,8 +31,6 @@
 
 int main()
 {
-
-
 	int32_t *SDRAM;
 	int32_t *img01;
 	int32_t *img02;
@@ -62,6 +60,7 @@ int main()
 	min=&m;
 	int *inputimg;
 	int number_image=1;
+	int numberOfImages = 9;
 	uint16_t rows=2048;
 	uint16_t cols=2048;
 	uint16_t indice;
@@ -155,17 +154,6 @@ int main()
 	uint32_t	tmp3Size = stdimagesize;
 	uint32_t	tmp3DatasetId = 14;
 
-	/*
-	uint32_t	med7Sdram = img6Sdram + img6Size;
-	uint32_t	med7Size = 1*sizeof(int32_t);
-	uint32_t	med7DatasetId = 7;
-
-	uint32_t	rad8Sdram = med7Sdram + med7Size;
-	uint32_t	rad8Size = LMAX_ROWS*LMAX_COLS*sizeof(int32_t);
-	uint32_t	rad8DatasetId = 8;
-*/
-
-
 	img01=(SDRAM+img01Sdram);
 	img02=(SDRAM+img02Sdram);
 	img03=(SDRAM+img03Sdram);
@@ -199,6 +187,17 @@ int main()
 	preprocessing_vmem_setEntry(tmp3Sdram, tmp3Size, tmp3DatasetId, tmp3);
 
 	preprocessing_vmem_print();
+
+
+	//NAND FLASH Memory
+	int32_t *NANDFLASH;
+	int32_t numberOfEntriesNAND = 128;
+	int32_t **entriesOfNAND = (int32_t **) malloc(numberOfEntriesNAND*sizeof(int32_t *));
+	NANDFLASH = (int32_t*) malloc(numberOfEntriesNAND*stdimagesize*sizeof(int32_t));
+
+	createNANDFLASH(NANDFLASH, entriesOfNAND, stdimagesize, numberOfImages);
+	//END NAND FLASH Memory
+
 
 
 	//	2.) Process image data:
