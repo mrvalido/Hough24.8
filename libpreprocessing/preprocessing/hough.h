@@ -10,11 +10,12 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include "../FITS_Interface.h"
 
 //NAND FLASH METHODS
 void createNANDFLASH(int32_t *NANDFLASH, int32_t **entriesOfNAND, int stdimagesize, int numberOfImages);
 int readNAND(int32_t *nandSrc, uint16_t rows, uint16_t cols, uint32_t sdDst);
-int writeNAND(uint32_t *sdSrc, uint16_t rows, uint16_t cols, int32_t nandDst);
+int writeNAND(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t *nandDst);
 //END OF NAND FLASH METHODS
 
 int preprocessing_hough_hist(uint32_t sdSrc, uint16_t rows, uint16_t cols,
@@ -32,4 +33,7 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 int preprocessing_zero(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst);
 int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
         uint32_t sdDst, int16_t index);
+
+int preprocessing_fixLowerValues(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t value, uint32_t sdDst);
+
 #endif /* LIBPREPROCESSING_PREPROCESSING_HOUGH_H_ */

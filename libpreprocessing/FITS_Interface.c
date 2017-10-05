@@ -161,56 +161,53 @@ int FITS_getImage(char *path, int *array, int imagesize, int *nkeys, char ***car
 
 	return status;
 }
-/*
- * Inputs:
- * int **array - 2D array that holds the image
- * char *path - path where the file will be saved
- * int imagesize - size of the image along one axis (!!!ATTENTION!!!)
- * char *pathForHeader - !!!TEMPORARY SOLUTION!!! - A file that we use to make the header of the new fits.
- */
-int FITS_saveImage(int32_t **array, char *path, int imagesizex, int imagesizey, int nkeys, char ***cards)
-{
-	fitsfile *fptr; /* pointer to the FITS file; defined in fitsio.h */
-	int status;
-	long fpixel = 1, naxis = 2, nelements;
-	long naxes[2] = { imagesizey, imagesizex };
-	status = 0; /* initialize status before calling fitsio routines */
-	int i;
-	printf("Pipeline finished 1!\n");
-	/*
-	 * delete previous image
-	 */
-	status = remove(path);
+
+ /*
+  * Inputs:
+  * int **array - 2D array that holds the image
+  * char *path - path where the file will be saved
+  * int imagesize - size of the image along one axis (!!!ATTENTION!!!)
+  * char *pathForHeader - !!!TEMPORARY SOLUTION!!! - A file that we use to make the header of the new fits.
+  */
+ int FITS_saveImage(int **array, char *path, int imagesizex, int imagesizey, int nkeys, char ***cards)
+ {
+ 	fitsfile *fptr; /* pointer to the FITS file; defined in fitsio.h */
+ 	int status;
+ 	long fpixel = 1, naxis = 2, nelements;
+ 	long naxes[2] = { imagesizey, imagesizex };
+ 	status = 0; /* initialize status before calling fitsio routines */
+ 	int i;
+
+ 	/*
+ 	 * delete previous image
+ 	 */
+ 	status = remove(path);
 
 
-	/*
-	 * Create fits and image
-	 */
-	fits_create_file(&fptr, path, &status); /* create new file */
-	/* Create the primary array image - must be LONG_IMG, as there is no INT_IMG */
-	fits_create_img(fptr, LONG_IMG, naxis, naxes, &status);
-	printf("Pipeline finished2222!\n");
-	/*
-	 * Write header of image
-	 */
+ 	/*
+ 	 * Create fits and image
+ 	 */
+ 	fits_create_file(&fptr, path, &status); /* create new file */
+ 	/* Create the primary array image - must be LONG_IMG, as there is no INT_IMG */
+ 	fits_create_img(fptr, LONG_IMG, naxis, naxes, &status);
+
+ 	/*
+ 	 * Write header of image
+ 	 */
 
 
-	for (i = 0; i < nkeys; i++)
-	{
-		fits_write_record(fptr, (*cards)[i], &status);
-	}
+ 	for (i = 0; i < nkeys; i++)
+ 	{
+ 		fits_write_record(fptr, (*cards)[i], &status);
+ 	}
 
-
-	/*
-	 * Write image
-	 */
-	nelements = naxes[0] * naxes[1]; /* number of pixels to write */
-
-	/* Write the array of integers to the image */
-
-	fits_write_img(fptr, TINT, fpixel, nelements, array[0], &status);
-
-	fits_close_file(fptr, &status); /* close the file */
-	fits_report_error(stderr, status); /* print out any error messages */
-	return status;
-}
+ 	/*
+ 	 * Write image
+ 	 */
+ 	nelements = naxes[0] * naxes[1]; /* number of pixels to write */
+ 	/* Write the array of integers to the image */
+ 	fits_write_img(fptr, TINT, fpixel, nelements, array[0], &status);
+ 	fits_close_file(fptr, &status); /* close the file */
+ 	fits_report_error(stderr, status); /* print out any error messages */
+ 	return status;
+ }

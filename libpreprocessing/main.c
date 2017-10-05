@@ -28,6 +28,16 @@
  * * * * * * *
  */
 
+void writeImageToFile(int32_t *img, char *fileName, int positionIndex,  int index, uint32_t stdimagesize ){
+	FILE *fp;
+	char file[20];
+	strcpy(file,fileName);
+	file[positionIndex] = 48 + index;
+	fp=fopen(file,"wb");
+	fwrite(img,sizeof(int32_t),stdimagesize,fp);
+	fclose(fp);
+}
+
 
 int main()
 {
@@ -63,7 +73,6 @@ int main()
 	int numberOfImages = 9;
 	uint16_t rows=2048;
 	uint16_t cols=2048;
-	uint16_t indice;
 	uint32_t stdimagesize=rows*cols;
 	uint32_t stdCentersSize = LMAX_ROWS*LMAX_COLS;
 	uint32_t stdMeanSize = 1;
@@ -83,6 +92,7 @@ int main()
 
 	printf("Load images in Virtual RAM!\n");
 
+	/*
 	for(unsigned int i = 0; i < number_image; i++) {
 		FITS_getImage("im00.fits", inputimg, stdimagesize, &nkeys, &header);
 		//FITS_getImage("circle3.fits", inputimg, stdimagesize, &nkeys, &header);
@@ -90,6 +100,7 @@ int main()
 			SDRAM[j]=(int32_t)eve_fp_int2s32(inputimg[j], FP32_FWL );
 			//SDRAM[j]=(int32_t)inputimg[j];
 	}
+	*/
 
 	/*
 	 * * * * * * * * *
@@ -198,125 +209,148 @@ int main()
 	createNANDFLASH(NANDFLASH, entriesOfNAND, stdimagesize, numberOfImages);
 	//END NAND FLASH Memory
 
-
-
 	//	2.) Process image data:
 		printf("Pipeline  start!\n");
+	for(int index = 0; index < numberOfImages; index++){
+
+		printf("--------------------------------\n");
+		printf("Calculando Hough de la Imagen %d\n", index);
+		printf("--------------------------------\n");
+		readNAND(entriesOfNAND[index], rows, cols, img01Sdram);
+
 
 #if DEBUG
-		fp=fopen("img.fits","wb");
-		fwrite(img01,sizeof(int32_t),stdimagesize,fp);
-		fclose(fp);
+			fp=fopen("img.fits","wb");
+			fwrite(img01,sizeof(int32_t),stdimagesize,fp);
+			fclose(fp);
 
-		preprocessing_ana_maxImage(img01Sdram,rows,cols, img03Sdram, max);
-		preprocessing_ana_minImage(img01Sdram,rows,cols, img03Sdram, min);
-		printf("minimo antes del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
-		printf("maximo antes del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
+			preprocessing_ana_maxImage(img01Sdram,rows,cols, img03Sdram, max);
+			preprocessing_ana_minImage(img01Sdram,rows,cols, img03Sdram, min);
+			printf("minimo antes del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
+			printf("maximo antes del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
 #endif
 
 
 
 #if DEBUG
 
-		preprocessing_ana_median(img01Sdram,rows, cols,tmp1Sdram);
+			preprocessing_ana_median(img01Sdram,rows, cols,tmp1Sdram);
 
-		preprocessing_ana_deriveX(tmp1Sdram,rows,cols,tmp2Sdram);
-		preprocessing_arith_abs(tmp1Sdram,rows,cols,tmp1Sdram);
+			preprocessing_ana_deriveX(tmp1Sdram,rows,cols,tmp2Sdram);
+			preprocessing_arith_abs(tmp1Sdram,rows,cols,tmp1Sdram);
 
-		preprocessing_ana_deriveY(tmp1Sdram,rows,cols,tmp3Sdram);
-		preprocessing_arith_abs(tmp2Sdram,rows,cols,tmp2Sdram);
+			preprocessing_ana_deriveY(tmp1Sdram,rows,cols,tmp3Sdram);
+			preprocessing_arith_abs(tmp2Sdram,rows,cols,tmp2Sdram);
 
-		preprocessing_arith_addImages(tmp2Sdram, tmp3Sdram, rows, cols, tmp1Sdram);
+			preprocessing_arith_addImages(tmp2Sdram, tmp3Sdram, rows, cols, tmp1Sdram);
 
-		fp=fopen("derivada.fits","wb");
-		fwrite(tmp1,sizeof(int32_t),stdimagesize,fp);
-		fclose(fp);
+			fp=fopen("derivada.fits","wb");
+			fwrite(tmp1,sizeof(int32_t),stdimagesize,fp);
+			fclose(fp);
 
 
-		preprocessing_ana_maxImage(tmp1Sdram,rows,cols, img03Sdram, max);
-		preprocessing_ana_minImage(tmp1Sdram,rows,cols, img03Sdram, min);
-		printf("minimo despues del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
-		printf("maximo despues del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
+			preprocessing_ana_maxImage(tmp1Sdram,rows,cols, img03Sdram, max);
+			preprocessing_ana_minImage(tmp1Sdram,rows,cols, img03Sdram, min);
+			printf("minimo despues del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
+			printf("maximo despues del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
 #endif
 
-		printf("Pipeline  get gradient estimation from input image 0..255!\n");
-		preprocessing_ana_deriveX(img01Sdram,rows,cols,tmp1Sdram);
-		preprocessing_arith_abs(tmp1Sdram,rows,cols,tmp1Sdram);
+			preprocessing_zero(tmp1Sdram, rows, cols, tmp1Sdram);
+			printf("Pipeline  get gradient estimation from input image 0..255!\n");
+			preprocessing_ana_deriveX(img01Sdram,rows,cols,tmp1Sdram);
+			//writeImageToFile(tmp1, "imageDX0.fits", 7, index, stdimagesize);
+			preprocessing_arith_abs(tmp1Sdram,rows,cols,tmp1Sdram);
+			//writeImageToFile(tmp1, "imageABX0.fits", 8, index, stdimagesize);
 
-		preprocessing_ana_deriveY(img01Sdram,rows,cols,tmp2Sdram);
-		preprocessing_arith_abs(tmp2Sdram,rows,cols,tmp2Sdram);
+			preprocessing_zero(tmp2Sdram, rows, cols, tmp2Sdram);
+			preprocessing_ana_deriveY(img01Sdram,rows,cols,tmp2Sdram);
+			//writeImageToFile(tmp2, "imageDY0.fits", 7, index, stdimagesize);
+			preprocessing_arith_abs(tmp2Sdram,rows,cols,tmp2Sdram);
+			//writeImageToFile(tmp2, "imageABY0.fits", 8, index, stdimagesize);
 
-		preprocessing_arith_addImages(tmp1Sdram, tmp2Sdram, rows, cols, tmp3Sdram);
+			preprocessing_zero(tmp3Sdram, rows, cols, tmp3Sdram);
+			preprocessing_arith_addImages(tmp1Sdram, tmp2Sdram, rows, cols, tmp3Sdram);
+			//writeImageToFile(tmp3, "imageADD0.fits", 8, index, stdimagesize);
+
+			preprocessing_arith_subtractImages(tmp3Sdram, img01Sdram, rows, cols, tmp3Sdram);
+			//writeImageToFile(tmp3, "imageSUB0.fits", 8, index, stdimagesize);
+			preprocessing_fixLowerValues(tmp3Sdram, rows, cols, 0, tmp3Sdram);
+			//writeImageToFile(tmp3, "imageSUBF0.fits", 9, index, stdimagesize);
+
 
 
 #if DEBUG
-		printf("Write to File gradiente ....finished!\n");
-		fp=fopen("gradiente.fits","wb");
-		fwrite(tmp3,sizeof(int32_t),stdimagesize,fp);
-		fclose(fp);
+			printf("Write to File gradiente ....finished!\n");
+			fp=fopen("gradiente.fits","wb");
+			fwrite(tmp3,sizeof(int32_t),stdimagesize,fp);
+			fclose(fp);
 
-		preprocessing_ana_maxImage(tmp3Sdram,rows,cols, img03Sdram, max);
-		preprocessing_ana_minImage(tmp3Sdram,rows,cols, img03Sdram, min);
-		printf("minimo despues del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
-		printf("maximo despues del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
+			preprocessing_ana_maxImage(tmp3Sdram,rows,cols, img03Sdram, max);
+			preprocessing_ana_minImage(tmp3Sdram,rows,cols, img03Sdram, min);
+			printf("minimo despues del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
+			printf("maximo despues del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
 #endif
 
-		//image thresholding
-		preprocessing_arith_meanImage2(tmp3Sdram, rows,cols, meanSdram);
-		threshold = *mean;
-		dif_threshold=eve_fp_signed32ToDouble(threshold, FP32_FWL);
+			//image thresholding
+			preprocessing_arith_meanImage2(tmp3Sdram, rows,cols, meanSdram);
+			threshold = *mean;
 
-		while (abs(dif_threshold)>0.5){
-			preprocessing_Threshold(tmp3Sdram, rows, cols,threshold,&newThresh);
-			dif_threshold=eve_fp_signed32ToDouble(eve_fp_subtract32(threshold, newThresh), FP32_FWL);
-			threshold=newThresh;
-		}
+			dif_threshold=eve_fp_signed32ToDouble(threshold, FP32_FWL);
 
-		printf("Threshold is ========  = %f  \n",  eve_fp_signed32ToDouble(threshold, FP32_FWL));
+			while (abs(dif_threshold)>0.5){
+				preprocessing_Threshold(tmp3Sdram, rows, cols,threshold,&newThresh);
+				dif_threshold=eve_fp_signed32ToDouble(eve_fp_subtract32(threshold, newThresh), FP32_FWL);
+				threshold=newThresh;
+			}
 
-		printf("Thresholding................!\n");
-		preprocessing_ana_over_eq_Thresh(tmp3Sdram, rows, cols,threshold, tmp3Sdram);
+			printf("Threshold is ========= %f  \n",  eve_fp_signed32ToDouble(threshold, FP32_FWL));
+
+			printf("Thresholding................!\n");
+			preprocessing_ana_over_eq_Thresh(tmp3Sdram, rows, cols,threshold, tmp3Sdram);
+
+/*
+#if DEBUG
+			//for debug
+			printf("Write to binary image to File finished!\n");
+			fp=fopen("imgbin2.fits","wb");
+			fwrite(tmp3,sizeof(int32_t),stdimagesize,fp);
+			fclose(fp);
+			//for debug end
+#endif
+
+
+			int radio=963;
+
+			float Rmin=(float)radio-(float)WIDTH_RADIO/2;
+			float Rmax=(float)radio+(float)WIDTH_RADIO/2;
+			//for(float r=Rmin;r<Rmax;r+=STEP_RADIO)
+			//{
+				//printf("Radio: %f\n", r);
+				preprocessing_zero(tmp1Sdram, rows,cols, tmp1Sdram);				//Reset Accumulator
+				//preprocessing_hough(img01Sdram,tmp1Sdram,rows,cols, radio, CENTER_DIST, STEP_HOUGH);
+				preprocessing_hough(tmp3Sdram,tmp1Sdram,rows,cols, radio , CENTER_DIST, STEP_HOUGH);
+
+				preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram);
+				preprocessing_maximumValue(tmp2Sdram, rows, cols, centersSdram, index);
+
+			//}
 
 #if DEBUG
-		//for debug
-		printf("Write to binary image to File finished!\n");
-		fp=fopen("imgbin2.fits","wb");
-		fwrite(tmp3,sizeof(int32_t),stdimagesize,fp);
-		fclose(fp);
-		//for debug end
-#endif
+			printf("Write to acumulador image to File finished!\n");
+			fp=fopen("acumula.fits","wb");
+			fwrite(tmp1,sizeof(int32_t),stdimagesize,fp);
+			fclose(fp);
 
 
-		int radio=963;
-		indice=0;
-		float Rmin=(float)radio-(float)WIDTH_RADIO/2;
-		float Rmax=(float)radio+(float)WIDTH_RADIO/2;
-		//for(float r=Rmin;r<Rmax;r+=STEP_RADIO)
-		//{
-			//printf("Radio: %f\n", r);
-			preprocessing_zero(tmp1Sdram, rows,cols, tmp1Sdram);				//Reset Accumulator
-			preprocessing_hough(img01Sdram,tmp1Sdram,rows,cols, radio, CENTER_DIST, STEP_HOUGH);
-			//preprocessing_hough(tmp3Sdram,tmp1Sdram,rows,cols, r , CENTER_DIST, STEP_HOUGH);
-
-			preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram);
-			preprocessing_maximumValue(tmp2Sdram, rows, cols, centersSdram, indice);
-
-		//}
-
-#if DEBUG
-		printf("Write to acumulador image to File finished!\n");
-		fp=fopen("acumula.fits","wb");
-		fwrite(tmp1,sizeof(int32_t),stdimagesize,fp);
-		fclose(fp);
+			printf("Write to File finished!\n");
 
 
-		printf("Write to File finished!\n");
-
-
-		//FITS_saveImage(outputimg, "ones2.fits", rows, cols, nkeys, &header);
+			//FITS_saveImage(outputimg, "ones2.fits", rows, cols, nkeys, &header);
 
 #endif
-		printf("Done!\n");
-		return 1;
+*/
+	}
+	printf("Done!\n");
+	return 1;
 
 }

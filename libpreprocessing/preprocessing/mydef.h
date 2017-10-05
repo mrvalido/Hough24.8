@@ -18,6 +18,6 @@
 #define STEP_RADIO 0.25
 #define LMAX_ROWS WIDTH_RADIO/STEP_RADIO //Numbers o terna
 #define LMAX_COLS 3 				//x, y ,maxvalues
-#define DEBUG true
+#define DEBUG false
 
 #endif /* LIBPREPROCESSING_PREPROCESSING_MYDEF_H_ */

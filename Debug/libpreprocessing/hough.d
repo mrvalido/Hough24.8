@@ -4,6 +4,7 @@ libpreprocessing/hough.o: ../libpreprocessing/hough.c \
  ../libpreprocessing/preprocessing/mydef.h \
  ../libpreprocessing/preprocessing/vmem.h \
  ../libpreprocessing/preprocessing/hough.h \
+ ../libpreprocessing/preprocessing/../FITS_Interface.h \
  ../libpreprocessing/../libeve/eve/fixed_point.h
 
 ../libpreprocessing/preprocessing/ana.h:
@@ -15,5 +16,7 @@ libpreprocessing/hough.o: ../libpreprocessing/hough.c \
 ../libpreprocessing/preprocessing/vmem.h:
 
 ../libpreprocessing/preprocessing/hough.h:
+
+../libpreprocessing/preprocessing/../FITS_Interface.h:
 
 ../libpreprocessing/../libeve/eve/fixed_point.h:

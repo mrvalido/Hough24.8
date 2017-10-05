@@ -30,11 +30,10 @@ void createNANDFLASH(int32_t *NANDFLASH, int32_t **entriesOfNAND, int stdimagesi
 	char **header;
 	int *inputimg = (int*) malloc((uint32_t)stdimagesize*sizeof(int));			//Only one image
 
-	printf("Load images in NAND FLASH!\n");
+	printf("Loading images in NAND FLASH\n");
 	char fileName[12] = "im/im00.fits";
 	for(unsigned int i = 0; i < numberOfImages; i++) {
 		fileName[6] = 48 + i;
-		printf("%s\n", fileName);
 		FITS_getImage(fileName, inputimg, stdimagesize, &nkeys, &header);
 		for (int j = 0; j < stdimagesize; j++)
 			NANDFLASH[i*stdimagesize + j]=(int32_t)eve_fp_int2s32(inputimg[j], FP32_FWL );
@@ -60,33 +59,7 @@ void createNANDFLASH(int32_t *NANDFLASH, int32_t **entriesOfNAND, int stdimagesi
 	entriesOfNAND[6]=(NANDFLASH+img7Nand);
 	entriesOfNAND[7]=(NANDFLASH+img8Nand);
 	entriesOfNAND[8]=(NANDFLASH+img9Nand);
-
-	//READ DISP
-	int MAXCHAR = 1000;
-	FILE *fp2;
-	char str[MAXCHAR];
-	char* filename = "disp.txt";
-
-	fp2 = fopen(filename, "r");
-	if (fp2 == NULL){
-		printf("Could not open file %s",filename);
-		return;
-	}
-
-	int index=0;
-	while (fgets(str, MAXCHAR, fp2) != NULL){
-		char *ch;
-		ch = strtok(str, " ");
-		while (ch != NULL) {
-			NANDFLASH[numberOfImages*stdimagesize + index]=(int32_t)eve_fp_int2s32(atoi(ch), FP32_FWL );
-			index++;
-			ch = strtok(NULL, " ,");
-		}
-	}
-	fclose(fp2);
-
-	uint32_t	dispNand = img9Nand + stdimagesize;
-	entriesOfNAND[9] = (NANDFLASH+dispNand);
+	printf("Images loaded successfully\n");
 }
 
 int readNAND(int32_t *nandSrc, uint16_t rows, uint16_t cols, uint32_t sdDst){
@@ -123,7 +96,7 @@ int readNAND(int32_t *nandSrc, uint16_t rows, uint16_t cols, uint32_t sdDst){
 	return status;
 }
 
-int writeNAND(uint32_t *sdSrc, uint16_t rows, uint16_t cols, int32_t nandDst){
+int writeNAND(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t *nandDst){
 	int status = PREPROCESSING_SUCCESSFUL;
 	unsigned int size = (unsigned int)(rows) * cols;
 	unsigned int p = 0;
@@ -159,29 +132,8 @@ int writeNAND(uint32_t *sdSrc, uint16_t rows, uint16_t cols, int32_t nandDst){
 //END OF NAND FLASH METHODS
 
 
-
-
-/**
- * Calculate eight bit image histogram
- *
- * @param val		input image
- * @return hist 	histogram of input image
- */
-
-//ImageValInt histogram (ImageValChar val){
-//	valarray<unsigned int> hist(GRAYLEVEL_8);
-//
-//	int size_val = val.size();
-//
-//	for(int i = 0; i < size_val; i++){
-//		hist[ val[i] ]++;
-//	}
-//
-//	return hist;
-//}
-
 int preprocessing_hough_hist(uint32_t sdSrc, uint16_t rows, uint16_t cols,
-        unsigned int valor, uint32_t sdDst)
+        unsigned int value, uint32_t sdDst)
 {
     int status = PREPROCESSING_SUCCESSFUL;
     unsigned int size = (unsigned int)(rows) * cols;
@@ -195,7 +147,7 @@ int preprocessing_hough_hist(uint32_t sdSrc, uint16_t rows, uint16_t cols,
 
     // Check whether given rows and columns are in a valid range.
     if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-            || (!preprocessing_vmem_isProcessingSizeValid(sdDst, 1, valor)))
+            || (!preprocessing_vmem_isProcessingSizeValid(sdDst, 1, value)))
     {
         return PREPROCESSING_INVALID_SIZE;
     }
@@ -210,7 +162,7 @@ int preprocessing_hough_hist(uint32_t sdSrc, uint16_t rows, uint16_t cols,
 
             // Check for valid pointer position.
             PREPROCESSING_DEF_CHECK_POINTER(src, p, size)
-            PREPROCESSING_DEF_CHECK_POINTER(dst, indice, valor)
+            PREPROCESSING_DEF_CHECK_POINTER(dst, indice, value)
 
 			indice=src[p]>>8; //24.8 to int32
             dst[indice] = eve_fp_add32(dst[indice], scalar);//Hist count
@@ -343,7 +295,6 @@ int preprocessing_arith_sumImage2(uint32_t sdSrc, uint16_t rows, uint16_t cols,
 
     dst[0]=eve_fp_double2s32(sum, FP32_FWL);
     if (dst[0] == EVE_FP32_NAN)
-
     {
     	printf("la media no es un numero  = %d\n",  dst[0]);
         return PREPROCESSING_INVALID_NUMBER;
@@ -368,7 +319,6 @@ int preprocessing_Threshold(uint32_t sdSrc, uint16_t rows, uint16_t cols,
     unsigned int count2;
 
     const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-    //int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
 
     // Check whether given rows and columns are in a valid range.
     if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols)))
@@ -408,11 +358,9 @@ int preprocessing_Threshold(uint32_t sdSrc, uint16_t rows, uint16_t cols,
             }
         }
     }
-   // printf("M1 M2 y media  ========  = %f  %f %f %d %d \n",  m1,m2,s,count1,count2);
     m1=m1/count1;
     m2=m2/count2;
     s=(m1+m2)/2;
-   //printf("M1 M2 y media  ========  = %f  %f %f %d %d \n",  m1,m2,s,count1,count2);
     newThresh[0]=eve_fp_double2s32(s, FP32_FWL);
     return status;
 }
@@ -661,3 +609,46 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
     return 0;
 }
 
+int preprocessing_fixLowerValues(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t value, uint32_t sdDst){
+	int status = PREPROCESSING_SUCCESSFUL;
+	unsigned int size = (unsigned int)(rows) * cols;
+	unsigned int p = 0;
+
+	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
+	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
+
+	// Check whether given rows and columns are in a valid range.
+	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
+			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
+	{
+		return PREPROCESSING_INVALID_SIZE;
+	}
+
+	// Process.
+	for (unsigned int r = 0; r < rows; r++)
+	{
+		for (unsigned int c = 0; c < cols; c++)
+		{
+			p = r * cols + c;
+
+			// Check for valid pointer position.
+			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
+			PREPROCESSING_DEF_CHECK_POINTER(dst, p, size);
+
+			if(eve_fp_compare32(src + p,&value) == -1){
+				dst[p]=value;
+			}
+			else{
+				dst[p]=src[p];
+			}
+
+
+			if (dst[p] == EVE_FP32_NAN)
+			{
+				status = PREPROCESSING_INVALID_NUMBER;
+			}
+		}
+	}
+
+	return status;
+}
