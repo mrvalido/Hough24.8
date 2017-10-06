@@ -277,7 +277,7 @@ int main()
 			preprocessing_fixLowerValues(tmp3Sdram, rows, cols, 0, tmp3Sdram);
 			//writeImageToFile(tmp3, "imageSUBF0.fits", 9, index, stdimagesize);
 
-
+			preprocessing_binarize(tmp3Sdram, rows, cols, 0, tmp3Sdram);
 
 #if DEBUG
 			printf("Write to File gradiente ....finished!\n");
@@ -290,7 +290,7 @@ int main()
 			printf("minimo despues del suavisado  = %f\n",  eve_fp_signed32ToDouble(m, FP32_FWL));
 			printf("maximo despues del suavisado = %f\n",eve_fp_signed32ToDouble(M, FP32_FWL));
 #endif
-
+/*
 			//image thresholding
 			preprocessing_arith_meanImage2(tmp3Sdram, rows,cols, meanSdram);
 			threshold = *mean;
@@ -308,7 +308,8 @@ int main()
 			printf("Thresholding................!\n");
 			preprocessing_ana_over_eq_Thresh(tmp3Sdram, rows, cols,threshold, tmp3Sdram);
 
-/*
+			//writeImageToFile(tmp3, "imageBIN0.fits", 8, index, stdimagesize);
+*/
 #if DEBUG
 			//for debug
 			printf("Write to binary image to File finished!\n");
@@ -328,11 +329,16 @@ int main()
 				//printf("Radio: %f\n", r);
 				preprocessing_zero(tmp1Sdram, rows,cols, tmp1Sdram);				//Reset Accumulator
 				//preprocessing_hough(img01Sdram,tmp1Sdram,rows,cols, radio, CENTER_DIST, STEP_HOUGH);
-				preprocessing_hough(tmp3Sdram,tmp1Sdram,rows,cols, radio , CENTER_DIST, STEP_HOUGH);
+				preprocessing_hough(tmp3Sdram,rows,cols, radio , CENTER_DIST, STEP_HOUGH, tmp1Sdram);
+				//preprocessing_hough2(tmp3Sdram, img02Sdram, rows, cols, radio, STEP_HOUGH, 1024,1024 ,CENTER_DIST ,tmp1Sdram);
+				//preprocessing_CustomHough(tmp3Sdram, rows, cols, tmp1Sdram);
 
+				writeImageToFile(tmp1, "imageHOU0.fits", 8, index, stdimagesize);
+/*
+				preprocessing_zero(tmp2Sdram, rows,cols, tmp2Sdram);
 				preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram);
 				preprocessing_maximumValue(tmp2Sdram, rows, cols, centersSdram, index);
-
+*/
 			//}
 
 #if DEBUG
@@ -348,7 +354,9 @@ int main()
 			//FITS_saveImage(outputimg, "ones2.fits", rows, cols, nkeys, &header);
 
 #endif
-*/
+
+
+
 	}
 	printf("Done!\n");
 	return 1;
