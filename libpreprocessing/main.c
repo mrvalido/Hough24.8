@@ -32,7 +32,17 @@ void writeImageToFile(int32_t *img, char *fileName, int positionIndex,  int inde
 	FILE *fp;
 	char file[20];
 	strcpy(file,fileName);
-	file[positionIndex] = 48 + index;
+
+	if(index < 10){
+		file[positionIndex] = 48 + index;
+	}else{
+		int decimal = index/10;
+		int subDecimal = index-decimal*10;
+		file[positionIndex-1] = 48 + decimal;
+		file[positionIndex] = 48 + subDecimal;
+	}
+
+
 	fp=fopen(file,"wb");
 	fwrite(img,sizeof(int32_t),stdimagesize,fp);
 	fclose(fp);
@@ -319,27 +329,24 @@ int main()
 			//for debug end
 #endif
 
+			//preprocessing_zero(tmp2Sdram, rows,cols, tmp2Sdram);
 
-			int radio=963;
 
-			float Rmin=(float)radio-(float)WIDTH_RADIO/2;
-			float Rmax=(float)radio+(float)WIDTH_RADIO/2;
-			//for(float r=Rmin;r<Rmax;r+=STEP_RADIO)
-			//{
+			float radio=963;
+
+			float Rmin=radio-WIDTH_RADIO/2;
+			float Rmax=radio+WIDTH_RADIO/2;
+
+			for(float r=Rmin;r<Rmax;r+=STEP_RADIO)
+			{
 				//printf("Radio: %f\n", r);
 				preprocessing_zero(tmp1Sdram, rows,cols, tmp1Sdram);				//Reset Accumulator
-				//preprocessing_hough(img01Sdram,tmp1Sdram,rows,cols, radio, CENTER_DIST, STEP_HOUGH);
-				preprocessing_hough(tmp3Sdram,rows,cols, radio , CENTER_DIST, STEP_HOUGH, tmp1Sdram);
-				//preprocessing_hough2(tmp3Sdram, img02Sdram, rows, cols, radio, STEP_HOUGH, 1024,1024 ,CENTER_DIST ,tmp1Sdram);
-				//preprocessing_CustomHough(tmp3Sdram, rows, cols, tmp1Sdram);
+				preprocessing_hough(tmp3Sdram,rows,cols, r , CENTER_DIST, STEP_HOUGH, tmp1Sdram);
 
-				writeImageToFile(tmp1, "imageHOU0.fits", 8, index, stdimagesize);
-/*
-				preprocessing_zero(tmp2Sdram, rows,cols, tmp2Sdram);
-				preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram);
-				preprocessing_maximumValue(tmp2Sdram, rows, cols, centersSdram, index);
-*/
-			//}
+				//preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram);
+				preprocessing_maximumValue(tmp1Sdram, rows, cols, CENTER_DIST, STEP_HOUGH, index, centersSdram);
+			}
+			printf("%d   %d   %d\n", centers[index*CENTERS_COLS], centers[index*CENTERS_COLS+1], centers[index*CENTERS_COLS+2]);
 
 #if DEBUG
 			printf("Write to acumulador image to File finished!\n");
@@ -349,9 +356,6 @@ int main()
 
 
 			printf("Write to File finished!\n");
-
-
-			//FITS_saveImage(outputimg, "ones2.fits", rows, cols, nkeys, &header);
 
 #endif
 

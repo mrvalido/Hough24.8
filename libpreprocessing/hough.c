@@ -405,22 +405,44 @@ int preprocessing_ana_over_eq_Thresh(uint32_t sdSrc, uint16_t rows, uint16_t col
     return status;
 }
 
-int preprocessing_hough(int32_t sdSrc, uint16_t rows,
-		uint16_t cols, unsigned int radio , int disp_max, float step,uint32_t sdDst)
+int preprocessing_hough(uint32_t sdSrc, uint16_t rows,
+		uint16_t cols, float radio , int disp_max, float step,uint32_t sdDst)
 {
 	int status = PREPROCESSING_SUCCESSFUL;
-//	unsigned int size = (unsigned int)(rows) * cols;
-//	unsigned int p = 0;
-//	unsigned int p1=0;//vector index in output image(hough space)
-//	float det,xc,yc;
-//	float det1,xc1,yc1;
-//	float b;
-//	int bb, aa;
-//	int32_t val=FP32_BINARY_TRUE;
-
 
 	unsigned int Xmin=XC-disp_max; 	// Xmin and Xmax define a square boundaries of coordinates around of CCD center (XC,YC)
 	unsigned int Xmax=XC+disp_max;
+	unsigned int Ymin=YC-disp_max; 	// Xmin and Xmax define a square boundaries of coordinates around of CCD center (XC,YC)
+	unsigned int Ymax=YC+disp_max;
+
+	// Check whether given rows and columns are in a valid range.
+	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
+			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
+	{
+		return PREPROCESSING_INVALID_SIZE;
+	}
+	float r2=(float)radio*radio;
+
+	preprocessing_do_hough(sdSrc, rows, cols, Xmin,Xmax,Ymin,Ymax,r2,step,sdDst);
+
+	return status;
+}
+
+int preprocessing_do_hough(uint32_t sdSrc, uint16_t rows,
+		uint16_t cols, unsigned int Xmin,unsigned int Xmax, unsigned int Ymin,unsigned int Ymax, float r2, float step, uint32_t sdDst)
+{
+
+	int status = PREPROCESSING_SUCCESSFUL;
+	unsigned int size = (unsigned int)(rows) * cols;
+	unsigned int p = 0;
+	unsigned int p1=0;//vector index in output image(hough space)
+	float det, det1;
+	float xc,yc;
+	float xc1,yc1;
+	float b;
+	int bb, aa;
+	int32_t val=FP32_BINARY_TRUE;
+
 
 	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
 	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
@@ -431,38 +453,15 @@ int preprocessing_hough(int32_t sdSrc, uint16_t rows,
 	{
 		return PREPROCESSING_INVALID_SIZE;
 	}
-	float r2;
-	// Process do hough
 
-		r2=(float)radio*radio;
-		preprocessing_do_hough(src,dst,rows, cols, Xmin,Xmax,r2,step);
-	//}
-
-	return status;
-}
-
-int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
-		uint16_t cols, unsigned int Xmin,unsigned int Xmax, float r2, float step)
-{
-
-	int status = PREPROCESSING_SUCCESSFUL;
-	unsigned int size = (unsigned int)(rows) * cols;
-	unsigned int p = 0;
-	unsigned int p1=0;//vector index in output image(hough space)
-	float det,xc,yc;
-	float det1,xc1,yc1;
-	float b;
-	int bb, aa;
-	int32_t val=FP32_BINARY_TRUE;
 	for (unsigned int r = 0; r < rows; r++)
 	{
 		for (unsigned int c = 0; c < cols; c++)
 		{
 			p = r * cols + c;
 
-
 			// Check for valid pointer position.
-			PREPROCESSING_DEF_CHECK_POINTER(src, p, size)
+			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
 
 			if (eve_fp_compare32(src + p, &val) == 0){//check for data equal to one
 				//proceso
@@ -470,13 +469,12 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 					det=r2-(c-a)*(c-a);//det to loop over xc and compute yc
 					det1=r2-(r-a)*(r-a);//de1t to loop over yc and compute xc
 
-
 					//yc estimation from xc loop
 					if (det>0){
 						b=((float)r-sqrt(det));//yc
-						if (b>Xmin && b<Xmax){//check for yc €[Xmin,Xmax]
+						if (b>Ymin && b<Ymax){//check for yc €[Xmin,Xmax]
 							aa=(int)round((a-Xmin)/step);//xc
-							bb=(int)round((b-Xmin)/step);//yc
+							bb=(int)round((b-Ymin)/step);//yc
 							if (bb>0 && aa>0){
 								p1=bb*cols + aa;
 								PREPROCESSING_DEF_CHECK_POINTER(dst, p1, size)
@@ -484,9 +482,7 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 								if (dst[p1] == EVE_FP32_NAN)
 								{
 									status = PREPROCESSING_INVALID_NUMBER;
-									printf("hhhhhhh\n");
 								}
-								//acu_ini[bb*dimensionAcumulador + aa] = acu_ini[bb*dimensionAcumulador + aa] + 1;
 							}
 						}
 					}
@@ -494,7 +490,7 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 					if (det1>0){
 						b=((float)c-sqrt(det1));//xc1
 						if (b>Xmin && b<Xmax){ //check for xc€[Xmin,Xmax]
-							aa=(int)round((a-Xmin)/step);//yc
+							aa=(int)round((a-Ymin)/step);//yc
 							bb=(int)round((b-Xmin)/step);//xc
 							if (bb>0 && aa>0){
 								p1=aa*cols + bb;
@@ -503,9 +499,7 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 								if (dst[p1] == EVE_FP32_NAN)
 								{
 									status = PREPROCESSING_INVALID_NUMBER;
-									printf("yyyyyyyyy\n");
 								}
-								//acu_ini[aa*dimensionAcumulador + bb] = acu_ini[aa*dimensionAcumulador + bb] + 1;
 							}
 						}
 					}
@@ -513,197 +507,6 @@ int preprocessing_do_hough(const int32_t *src, int32_t *dst, uint16_t rows,
 			}
 		}
 	}
-	return status;
-}
-
-
-
-
-int preprocessing_hough2(int32_t sdSrc, int32_t sdTmp1, uint16_t rows,
-		uint16_t cols, unsigned int radio, float step, float xc, float yc,int16_t disp_max ,uint32_t sdDst){
-
-	int status = PREPROCESSING_SUCCESSFUL;
-
-	float Xmin=xc-disp_max; 	// Xmin and Xmax are boundaries of coordinates around of initial center
-	float Xmax=xc+disp_max;
-	float Ymin=yc-disp_max;		// Ymin and Ymax are boundaries of coordinates around of initial center
-	float Ymax=yc+disp_max;
-
-	uint16_t acumulatorSize=floor((Xmax-Xmin)/step)+1;
-
-
-	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-	int32_t* tmp1 = preprocessing_vmem_getDataAddress(sdTmp1);
-	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
-
-	// Check whether given rows and columns are in a valid range.
-	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdTmp1, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-	{
-		return PREPROCESSING_INVALID_SIZE;
-	}
-
-
-	int count = 0;
-
-	if((status = preprocessing_do_hough2(src, tmp1, rows, cols, radio*radio, acumulatorSize, Xmin, Xmax, Ymin, Ymax, step, dst)) != PREPROCESSING_SUCCESSFUL) return status;
-
-
-
-
-	 return status;
-}
-
-
-int preprocessing_do_hough2(int32_t sdSrc, int32_t sdTmp1, uint16_t rows, uint16_t cols,
-		unsigned int pow2radio, uint16_t acumulatorSize,
-		float Xmin, float Xmax, float Ymin, float Ymax, float step, uint32_t sdDst){
-
-	int status = PREPROCESSING_SUCCESSFUL;
-	unsigned int size = (unsigned int)(rows) * cols;
-	unsigned int p = 0;
-	unsigned int p2 = 0;
-
-	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-	int32_t* tmp1 = preprocessing_vmem_getDataAddress(sdTmp1);
-	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
-
-	// Check whether given rows and columns are in a valid range.
-	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdTmp1, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-	{
-		return PREPROCESSING_INVALID_SIZE;
-	}
-
-	float det,xc,yc;
-	float det1,xc1,yc1;
-	float b;
-	int bb, aa;
-	int32_t val=FP32_BINARY_TRUE;
-
-
-	// Process.
-	for (unsigned int r = 0; r < rows; r++)
-	{
-		for (unsigned int c = 0; c < cols; c++)
-		{
-			p = r * cols + c;
-
-			// Check for valid pointer position.
-			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
-
-			if (eve_fp_compare32(src + p, &val) == 0){//check for data equal to one
-				//do votation in Hough space
-				for(float a = Xmin; a < Xmax; a+=step){
-					det  = pow2radio-(c-a)*(c-a);//loop over x
-					det1 = pow2radio-(r-a)*(r-a);//loop over y
-
-					//yc estimation from xc loop
-					if (det>0){
-						b=((float)r-sqrt(det));//yc
-						if (b>Ymin && b<Ymax){
-							aa=(int)round((a-Xmin)/step);//xc
-							bb=(int)round((b-Ymin)/step);//yc
-							if (bb>0 && aa>0){
-								p2 = bb * cols + aa;
-
-								// Check for valid pointer position.
-								PREPROCESSING_DEF_CHECK_POINTER(src, p2, size);
-
-								dst[p] = eve_fp_add32(dst[p],FP32_BINARY_TRUE);
-							}
-						}
-					}
-
-					//xc1 estimation from yc1 loop
-					if (det1>0){
-						b=((float)c-sqrt(det1));//xc1
-						if (b>Xmin && b<Xmax){
-							aa=(int)round((a-Ymin)/step);//yc
-							bb=(int)round((b-Xmin)/step);//xc
-							if (bb>0 && aa>0){
-								p2 = aa * cols + bb;
-
-								// Check for valid pointer position.
-								PREPROCESSING_DEF_CHECK_POINTER(src, p2, size);
-
-								dst[p] = eve_fp_add32(dst[p],FP32_BINARY_TRUE);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return status;
-}
-
-int preprocessing_CustomHough(int32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst){
-
-	int status = PREPROCESSING_SUCCESSFUL;
-	unsigned int size = (unsigned int)(rows) * cols;
-	unsigned int p = 0;
-	unsigned int p2 = 0;
-
-	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
-
-	// Check whether given rows and columns are in a valid range.
-	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-	{
-		return PREPROCESSING_INVALID_SIZE;
-	}
-
-	uint32_t one = FP32_BINARY_TRUE;
-	// Process.
-	for (unsigned int r = 0; r < rows; r++)
-	{
-		for (unsigned int c = 0; c < cols; c++)
-		{
-			p = r * cols + c;
-
-			// Check for valid pointer position.
-			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
-
-			if(eve_fp_compare32(src + p,&one) == 0){
-				uint16_t xCoorMax = 0;
-				uint16_t yCoorMax = 0;
-				uint16_t distMax = 0;
-
-				for (unsigned int r2 = 0; r2 < rows; r2++)
-				{
-					for (unsigned int c2 = 0; c2 < cols; c2++)
-					{
-						p2 = r2 * cols + c2;
-
-						// Check for valid pointer position.
-						PREPROCESSING_DEF_CHECK_POINTER(src, p2, size);
-						/*
-						if(eve_fp_compare32(src+p2,&one) == 0){
-							uint16_t tmpDist = sqrt( pow((double)(c2-c), 2.0) + pow((double)(r2-r), 2.0));
-							if(tmpDist > distMax){
-								distMax = tmpDist;
-								xCoorMax = c;
-								yCoorMax = r;
-							}
-						}
-						*/
-					}
-				}
-/*
-				p2 = yCoorMax * cols + xCoorMax;
-				PREPROCESSING_DEF_CHECK_POINTER(dst, p2, size);
-
-				dst[p2] = eve_fp_add32(dst[p2],FP32_BINARY_TRUE);
-				*/
-			}
-		}
-	}
-
 	return status;
 }
 
@@ -749,14 +552,16 @@ int preprocessing_zero(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sd
 /*****************************************************************************/
 
 int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
-        uint32_t sdDst, int16_t index)
+		int disp_max, float step, int16_t index, uint32_t sdDst)
 {
     int32_t max = EVE_FP32_NAN;
     unsigned int size = (unsigned int)(rows) * cols;
-    unsigned int sizeLMAX = (unsigned int)(LMAX_ROWS) * LMAX_COLS;
     unsigned int p = 0;
+    unsigned int p2 = 0;
     int32_t maxX;
     int32_t maxY;
+    unsigned int Xmin=XC-disp_max;
+    unsigned int Ymin=YC-disp_max;
 
     const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
     int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
@@ -776,7 +581,7 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
             p = r * cols + c;
 
             // Check for valid pointer position.
-            PREPROCESSING_DEF_CHECK_POINTER(src, p, size)
+            PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
 
             if (eve_fp_compare32(src + p, &max) == 1)
             {
@@ -788,14 +593,20 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
         }
     }
 
-    if(eve_fp_compare32(dst + index, &max) == -1){
-    	dst[index] = max;
-    	dst[index+1] = maxX;
-    	dst[index+2] = maxY;
+    p2=index*CENTERS_COLS;
 
+    PREPROCESSING_DEF_CHECK_POINTER(dst, p2, size);
+    PREPROCESSING_DEF_CHECK_POINTER(dst, p2+1, size);
+    PREPROCESSING_DEF_CHECK_POINTER(dst, p2+2, size);
+
+    if(eve_fp_compare32(dst + p2, &max) == -1){
+    	dst[p2] = max;
+    	dst[p2+1] = maxX*step + Xmin;
+    	dst[p2+2] = maxY*step + Ymin;
+    	writeImageToFile(src, "imageHOU0.fits", 8, index, 2048*2048);
     }
 
-    printf("%d   %d   %d\n", max, maxX, maxY);	//OJO Pasarlo a punto fijo
+    //printf("%d   %d   %d\n", dst[index], dst[index+1], dst[index+2]);
     return 0;
 }
 
