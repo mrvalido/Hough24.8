@@ -57,6 +57,8 @@ int main()
 	uint32_t stdimagesize=ROWS*COLS;
 	uint32_t stdCentersSize = CENTERS_ROWS*CENTERS_COLS;
 
+	int status = PREPROCESSING_SUCCESSFUL;
+
 	//Pendiente de poner en el define
 	float Rmin=RADIO-WIDTH_RADIO/2;
 	float Rmax=RADIO+WIDTH_RADIO/2;
@@ -132,40 +134,22 @@ int main()
 		//Read image i from NAND
 		readNAND(entriesOfNAND[index], ROWS, COLS, imgSdram);
 
-		//Calculate DX
-		preprocessing_zero(tmp1Sdram, ROWS, COLS, tmp1Sdram);
-		preprocessing_ana_deriveX(imgSdram,ROWS, COLS,tmp1Sdram);
-		preprocessing_arith_abs(tmp1Sdram,ROWS, COLS,tmp1Sdram);
-
-		//Calculate DY
-		preprocessing_zero(tmp2Sdram, ROWS, COLS, tmp2Sdram);
-		preprocessing_ana_deriveY(imgSdram,ROWS, COLS,tmp2Sdram);
-		preprocessing_arith_abs(tmp2Sdram,ROWS, COLS,tmp2Sdram);
-
-		//Calculate Sum DX & DY
-		preprocessing_arith_addImages(tmp1Sdram, tmp2Sdram, ROWS, COLS, tmp2Sdram);
-
-		//Calculate border
-		preprocessing_arith_subtractImages(tmp2Sdram, imgSdram, ROWS, COLS, tmp2Sdram);
-		preprocessing_ana_overThresh(tmp2Sdram, ROWS, COLS, 0, tmp2Sdram);
+		//Binarize image
+		if((status = preprocessing_binarize(imgSdram, tmp1Sdram, tmp2Sdram, ROWS, COLS, tmp2Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
 		for(float r=Rmin; r<Rmax; r+=STEP_HOUGH)
 		{
-			preprocessing_zero(tmp1Sdram, ROWS, COLS, tmp1Sdram);				//Reset Accumulator
-			preprocessing_hough(tmp2Sdram, ROWS, COLS, Xmin,Xmax,Ymin,Ymax,r*r,STEP_HOUGH,tmp1Sdram);
+			if((status = preprocessing_zero(tmp1Sdram, ROWS, COLS, tmp1Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}				//Reset Accumulator
+			if((status = preprocessing_hough(tmp2Sdram, ROWS, COLS, Xmin,Xmax,Ymin,Ymax,r*r,STEP_HOUGH,tmp1Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
-			//preprocessing_ana_median(tmp1Sdram,rows, cols,tmp2Sdram); //It is here to check if it improve something
-			preprocessing_maximumValue(tmp1Sdram, ROWS, COLS, CENTER_DIST, STEP_HOUGH, index, centersSdram);
+			if((status = preprocessing_maximumValue(tmp1Sdram, ROWS, COLS, CENTER_DIST, STEP_HOUGH, index, centersSdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 		}
 
 		printf("Votes: %d    x: %d     y: %d\n", centers[index*CENTERS_COLS], centers[index*CENTERS_COLS+1], centers[index*CENTERS_COLS+2]);
 	}
 
 
-
-
-
 	printf("Done!\n");
-	return 1;
+	return status;
 
 }

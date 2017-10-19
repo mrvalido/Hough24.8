@@ -12,6 +12,8 @@
 #include "preprocessing/mydef.h"
 #include "preprocessing/vmem.h"
 #include "preprocessing/hough.h"
+#include "preprocessing/ana.h"
+#include "preprocessing/arith.h"
 /* from libeve */
 #include "../libeve/eve/fixed_point.h"
 
@@ -137,6 +139,7 @@ int preprocessing_arith_abs(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32
     int status = PREPROCESSING_SUCCESSFUL;
     unsigned int size = (unsigned int)(rows) * cols;
     unsigned int p = 0;
+    uint32_t zero = 0;
 
     const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
     int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
@@ -157,9 +160,11 @@ int preprocessing_arith_abs(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32
             p = r * cols + c;
 
             // Check for valid pointer position.
-            PREPROCESSING_DEF_CHECK_POINTER(src, p, size)
-            PREPROCESSING_DEF_CHECK_POINTER(dst, p, size)
-			if (src[p]<0)
+            PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
+            PREPROCESSING_DEF_CHECK_POINTER(dst, p, size);
+
+
+			if (eve_fp_compare32(src + p, &zero) == -1)
 				dst[p]=eve_fp_multiply32(src[p],-256,FP32_FWL);		//If negative multiply by -1(-256) in 24.8 format
 			else
 				dst[p]=src[p];
@@ -185,7 +190,7 @@ int preprocessing_hough(uint32_t sdSrc, uint16_t rows,
 	float det, det1;
 	float b;
 	int bb, aa;
-	int32_t val=FP32_BINARY_TRUE;
+	int32_t one=FP32_BINARY_TRUE;
 
 
 	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
@@ -207,8 +212,8 @@ int preprocessing_hough(uint32_t sdSrc, uint16_t rows,
 			// Check for valid pointer position.
 			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
 
-			if (eve_fp_compare32(src + p, &val) == 0){//check for data equal to one
-				//proceso
+			if (eve_fp_compare32(src + p, &one) == 0){//check for data equal to one
+				//process
 				for(float a=Xmin; a<Xmax;a+=step){
 					det=r2-(c-a)*(c-a);//det to loop over xc and compute yc
 					det1=r2-(r-a)*(r-a);//de1t to loop over yc and compute xc
@@ -293,11 +298,10 @@ int preprocessing_zero(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sd
     return status;
 }
 
-/*****************************************************************************/
-
 int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
 		int disp_max, float step, int16_t index, uint32_t sdDst)
 {
+	int status = PREPROCESSING_SUCCESSFUL;
     int32_t max = EVE_FP32_NAN;
     unsigned int size = (unsigned int)(rows) * cols;
     unsigned int p = 0;
@@ -332,7 +336,6 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
                 max = src[p];
                 maxX = (int32_t)c;
                 maxY = (int32_t)r;
-
             }
         }
     }
@@ -343,99 +346,40 @@ int preprocessing_maximumValue(uint32_t sdSrc, uint16_t rows, uint16_t cols,
     PREPROCESSING_DEF_CHECK_POINTER(dst, p2+1, size);
     PREPROCESSING_DEF_CHECK_POINTER(dst, p2+2, size);
 
+    //If the new max is better than the previous, change it
     if(eve_fp_compare32(dst + p2, &max) == -1){
     	dst[p2] = max;
     	dst[p2+1] = maxX*step + Xmin;
     	dst[p2+2] = maxY*step + Ymin;
     }
 
-    return 0;
+    if (dst[p2] == EVE_FP32_NAN || dst[p2+1] == EVE_FP32_NAN || dst[p2+2] == EVE_FP32_NAN)
+	{
+		status = PREPROCESSING_INVALID_NUMBER;
+	}
+
+    return status;
 }
 
-int preprocessing_fixLowerValues(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t value, uint32_t sdDst){
+int preprocessing_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2, uint16_t rows, uint16_t cols, uint32_t sdDst){
 	int status = PREPROCESSING_SUCCESSFUL;
-	unsigned int size = (unsigned int)(rows) * cols;
-	unsigned int p = 0;
 
-	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
+	//Calculate DX
+	if((status = preprocessing_zero(sdTmp1, ROWS, COLS, sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	if((status = preprocessing_ana_deriveX(sdSrc,ROWS, COLS,sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	if((status = preprocessing_arith_abs(sdTmp1,ROWS, COLS,sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
-	// Check whether given rows and columns are in a valid range.
-	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-	{
-		return PREPROCESSING_INVALID_SIZE;
-	}
+	//Calculate DY
+	if((status = preprocessing_zero(sdTmp2, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	if((status = preprocessing_ana_deriveY(sdSrc,ROWS, COLS,sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	if((status = preprocessing_arith_abs(sdTmp2,ROWS, COLS,sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
-	// Process.
-	for (unsigned int r = 0; r < rows; r++)
-	{
-		for (unsigned int c = 0; c < cols; c++)
-		{
-			p = r * cols + c;
+	//Calculate Sum DX & DY
+	if((status = preprocessing_arith_addImages(sdTmp1, sdTmp2, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
-			// Check for valid pointer position.
-			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
-			PREPROCESSING_DEF_CHECK_POINTER(dst, p, size);
-
-			if(eve_fp_compare32(src + p,&value) == -1){
-				dst[p]=value;
-			}
-			else{
-				dst[p]=src[p];
-			}
-
-
-			if (dst[p] == EVE_FP32_NAN)
-			{
-				status = PREPROCESSING_INVALID_NUMBER;
-			}
-		}
-	}
-
-	return status;
-}
-
-int preprocessing_binarize(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t value, uint32_t sdDst){
-	int status = PREPROCESSING_SUCCESSFUL;
-	unsigned int size = (unsigned int)(rows) * cols;
-	unsigned int p = 0;
-
-	const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-	int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
-
-	// Check whether given rows and columns are in a valid range.
-	if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-			|| (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-	{
-		return PREPROCESSING_INVALID_SIZE;
-	}
-
-	// Process.
-	for (unsigned int r = 0; r < rows; r++)
-	{
-		for (unsigned int c = 0; c < cols; c++)
-		{
-			p = r * cols + c;
-
-			// Check for valid pointer position.
-			PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
-			PREPROCESSING_DEF_CHECK_POINTER(dst, p, size);
-
-			if(eve_fp_compare32(src + p,&value) == 1){
-				dst[p]=FP32_BINARY_TRUE;
-			}
-			else{
-				dst[p]=0;
-			}
-
-
-			if (dst[p] == EVE_FP32_NAN)
-			{
-				status = PREPROCESSING_INVALID_NUMBER;
-			}
-		}
-	}
+	//Calculate border
+	if((status = preprocessing_arith_subtractImages(sdTmp2, sdSrc, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	if((status = preprocessing_ana_overThresh(sdTmp2, ROWS, COLS, 0, sdDst) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
 
 	return status;
 }
