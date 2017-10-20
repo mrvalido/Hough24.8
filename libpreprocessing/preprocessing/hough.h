@@ -19,7 +19,7 @@ int writeNAND(uint32_t sdSrc, uint16_t rows, uint16_t cols, int32_t *nandDst);
 //END OF NAND FLASH METHODS
 
 /**
-	 * Calculate absolute of an image
+	 * Calculate absolute values of an image
 	 *
 	 * @param sdSrc  	the VMEM (SDRAM) address of image.
 	 * @param rows   	the number of image rows.

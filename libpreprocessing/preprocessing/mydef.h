@@ -27,5 +27,8 @@
 #define CENTERS_ROWS NUMBER_OF_IMAGES/STEP_HOUGH //Number of ternas
 #define CENTERS_COLS 3
 
+#define CHECK_STATUS(x) 	if((status = x ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+
+
 
 #endif /* LIBPREPROCESSING_PREPROCESSING_MYDEF_H_ */

@@ -365,21 +365,21 @@ int preprocessing_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2, uin
 	int status = PREPROCESSING_SUCCESSFUL;
 
 	//Calculate DX
-	if((status = preprocessing_zero(sdTmp1, ROWS, COLS, sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
-	if((status = preprocessing_ana_deriveX(sdSrc,ROWS, COLS,sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
-	if((status = preprocessing_arith_abs(sdTmp1,ROWS, COLS,sdTmp1) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	CHECK_STATUS(preprocessing_zero(sdTmp1, ROWS, COLS, sdTmp1))
+	CHECK_STATUS(preprocessing_ana_deriveX(sdSrc,ROWS, COLS,sdTmp1) )
+	CHECK_STATUS(preprocessing_arith_abs(sdTmp1,ROWS, COLS,sdTmp1) )
 
 	//Calculate DY
-	if((status = preprocessing_zero(sdTmp2, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
-	if((status = preprocessing_ana_deriveY(sdSrc,ROWS, COLS,sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
-	if((status = preprocessing_arith_abs(sdTmp2,ROWS, COLS,sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	CHECK_STATUS(preprocessing_zero(sdTmp2, ROWS, COLS, sdTmp2) )
+	CHECK_STATUS(preprocessing_ana_deriveY(sdSrc,ROWS, COLS,sdTmp2) )
+	CHECK_STATUS(preprocessing_arith_abs(sdTmp2,ROWS, COLS,sdTmp2) )
 
 	//Calculate Sum DX & DY
-	if((status = preprocessing_arith_addImages(sdTmp1, sdTmp2, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	CHECK_STATUS(preprocessing_arith_addImages(sdTmp1, sdTmp2, ROWS, COLS, sdTmp2) )
 
 	//Calculate border
-	if((status = preprocessing_arith_subtractImages(sdTmp2, sdSrc, ROWS, COLS, sdTmp2) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
-	if((status = preprocessing_ana_overThresh(sdTmp2, ROWS, COLS, 0, sdDst) ) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+	CHECK_STATUS(preprocessing_arith_subtractImages(sdTmp2, sdSrc, ROWS, COLS, sdTmp2) )
+	CHECK_STATUS(preprocessing_ana_overThresh(sdTmp2, ROWS, COLS, 0, sdDst) )
 
 	return status;
 }

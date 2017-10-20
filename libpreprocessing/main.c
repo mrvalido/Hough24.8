@@ -135,14 +135,14 @@ int main()
 		readNAND(entriesOfNAND[index], ROWS, COLS, imgSdram);
 
 		//Binarize image
-		if((status = preprocessing_binarize(imgSdram, tmp1Sdram, tmp2Sdram, ROWS, COLS, tmp2Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+		CHECK_STATUS(preprocessing_binarize(imgSdram, tmp1Sdram, tmp2Sdram, ROWS, COLS, tmp2Sdram))
 
 		for(float r=Rmin; r<Rmax; r+=STEP_HOUGH)
 		{
-			if((status = preprocessing_zero(tmp1Sdram, ROWS, COLS, tmp1Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}				//Reset Accumulator
-			if((status = preprocessing_hough(tmp2Sdram, ROWS, COLS, Xmin,Xmax,Ymin,Ymax,r*r,STEP_HOUGH,tmp1Sdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+			CHECK_STATUS(preprocessing_zero(tmp1Sdram, ROWS, COLS, tmp1Sdram))				//Reset Accumulator
+			CHECK_STATUS(preprocessing_hough(tmp2Sdram, ROWS, COLS, Xmin,Xmax,Ymin,Ymax,r*r,STEP_HOUGH,tmp1Sdram))
 
-			if((status = preprocessing_maximumValue(tmp1Sdram, ROWS, COLS, CENTER_DIST, STEP_HOUGH, index, centersSdram)) != PREPROCESSING_SUCCESSFUL){ printf("Status Error\n");  return status;}
+			CHECK_STATUS(preprocessing_maximumValue(tmp1Sdram, ROWS, COLS, CENTER_DIST, STEP_HOUGH, index, centersSdram))
 		}
 
 		printf("Votes: %d    x: %d     y: %d\n", centers[index*CENTERS_COLS], centers[index*CENTERS_COLS+1], centers[index*CENTERS_COLS+2]);
