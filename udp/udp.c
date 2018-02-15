@@ -142,55 +142,8 @@ int udp_abs(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst)
 
 
 /*****************************************************************************/
-int udp_abs_new(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst)
-{
-    int status = PREPROCESSING_SUCCESSFUL;
-    unsigned int size = (unsigned int)(rows) * cols;
-    unsigned int p = 0;
-    uint32_t zero = 0;
 
-    const int32_t* src = preprocessing_vmem_getDataAddress(sdSrc);
-    int32_t* dst = preprocessing_vmem_getDataAddress(sdDst);
-
-    // Check whether given rows and columns are in a valid range.
-    if ((!preprocessing_vmem_isProcessingSizeValid(sdSrc, rows, cols))
-            || (!preprocessing_vmem_isProcessingSizeValid(sdDst, rows, cols)))
-    {
-        return PREPROCESSING_INVALID_SIZE;
-    }
-
-    // Process.
-    for (unsigned int r = 0; r < rows; r++)
-    {
-        for (unsigned int c = 0; c < cols; c++)
-        {
-
-            p = r * cols + c;
-
-            // Check for valid pointer position.
-            PREPROCESSING_DEF_CHECK_POINTER(src, p, size);
-            PREPROCESSING_DEF_CHECK_POINTER(dst, p, size);
-
-
-			if (eve_fp_compare32(src + p, &zero) == -1)
-				dst[p]=eve_fp_multiply32(src[p],-256,FP32_FWL);		//If negative multiply by -1(-256) in 24.8 format
-			else
-				dst[p]=src[p];
-
-            if (dst[p] == EVE_FP32_NAN)
-            {
-                status = PREPROCESSING_INVALID_NUMBER;
-            }
-        }
-    }
-
-    return status;
-}
-
-
-/*****************************************************************************/
-
-int udp_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2,
+int udp_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2, uint32_t sdTmp3,
         uint16_t rows, uint16_t cols, uint32_t sdDst)
 {
 	int status = PREPROCESSING_SUCCESSFUL;
@@ -198,23 +151,19 @@ int udp_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2,
 	//Calculate DX
 	CHECK_STATUS(preprocessing_ana_underThresh(sdTmp1, rows, cols, EVE_FP32_NAN, sdTmp1))
 	CHECK_STATUS(preprocessing_ana_deriveX(sdSrc, rows, cols, sdTmp1))
-	//CHECK_STATUS(udp_abs(sdTmp1, rows, cols, sdTmp1))
-	CHECK_STATUS(udp_abs_new(sdTmp1,rows, cols,sdTmp1) )
-
+	CHECK_STATUS(udp_abs(sdTmp1, rows, cols, sdTmp2))
 
 	//Calculate DY
-	CHECK_STATUS(preprocessing_ana_underThresh(sdTmp2, rows, cols, EVE_FP32_NAN, sdTmp2))
-	CHECK_STATUS(preprocessing_ana_deriveY(sdSrc, rows, cols,sdTmp2))
-	//CHECK_STATUS(udp_abs(sdTmp2, rows, cols, sdTmp2))
-	CHECK_STATUS(udp_abs_new(sdTmp2,ROWS, COLS,sdTmp2) )
-
+	CHECK_STATUS(preprocessing_ana_underThresh(sdTmp1, rows, cols, EVE_FP32_NAN, sdTmp1))
+	CHECK_STATUS(preprocessing_ana_deriveY(sdSrc, rows, cols,sdTmp1))
+	CHECK_STATUS(udp_abs(sdTmp1, rows, cols, sdTmp3))
 
 	//Calculate Sum DX & DY
-	CHECK_STATUS(preprocessing_arith_addImages(sdTmp1, sdTmp2, rows, cols, sdTmp2))
+	CHECK_STATUS(preprocessing_arith_addImages(sdTmp2, sdTmp3, rows, cols, sdTmp3))
 
 	//Calculate border
-	CHECK_STATUS(preprocessing_arith_subtractImages(sdTmp2, sdSrc, rows, cols, sdTmp2))
-	CHECK_STATUS(preprocessing_ana_overThresh(sdTmp2, rows, cols, 0, sdDst))
+	CHECK_STATUS(preprocessing_arith_subtractImages(sdTmp3, sdSrc, rows, cols, sdTmp3))
+	CHECK_STATUS(preprocessing_ana_overThresh(sdTmp3, rows, cols, 0, sdDst))
 
 	return status;
 }

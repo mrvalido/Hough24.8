@@ -56,30 +56,19 @@ int udp_storeImage(uint32_t sdSrc, uint16_t rows, uint16_t cols,
 int udp_abs(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst);
 
 /**
- * Calculate absolute values of an image
- *
- * @param sdSrc the VMEM (SDRAM) address of image.
- * @param rows  the number of image rows.
- * @param cols  the number of image columns.
- * @param sdDst the VMEM (SDRAM) address of result: abs of image.
- *
- * @return PREPROCESSING_SUCCESSFUL on success, failure code otherwise.
- */
-int udp_abs_new(uint32_t sdSrc, uint16_t rows, uint16_t cols, uint32_t sdDst);
-
-/**
  * Binarize source image, in order to use it in hough
  *
  * @param sdSrc  the VMEM (SDRAM) address of image.
  * @param sdTmp1 the VMEM (SDRAM) address of tmp1.
  * @param sdTmp2 the VMEM (SDRAM) address of tmp2
+ * @param sdTmp3 the VMEM (SDRAM) address of tmp3
  * @param rows   the number of image rows.
  * @param cols   the number of image columns.
  * @param sdDst  the VMEM (SDRAM) address of result.
  *
  * @return PREPROCESSING_SUCCESSFUL on success, failure code otherwise.
  */
-int udp_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2,
+int udp_binarize(uint32_t sdSrc, uint32_t sdTmp1, uint32_t sdTmp2, uint32_t sdTmp3,
         uint16_t rows, uint16_t cols, uint32_t sdDst);
 
 #endif /* UDP_UDP_H */

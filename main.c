@@ -33,6 +33,7 @@ int main()
 	int32_t *centers;
 	int32_t *tmp1;
 	int32_t *tmp2;
+	int32_t *tmp3;
 
 	uint32_t stdimagesize=ROWS*COLS;
 	uint32_t stdCentersSize = CENTERS_ROWS*CENTERS_COLS;
@@ -74,15 +75,21 @@ int main()
 	uint32_t	tmp2Size = stdimagesize;
 	uint32_t	tmp2DatasetId = 4;
 
+	uint32_t	tmp3Sdram = tmp2Sdram + tmp2Size;
+	uint32_t	tmp3Size = stdimagesize;
+	uint32_t	tmp3DatasetId = 5;
+
 	img=(SDRAM+imgSdram);
 	centers=(SDRAM+centersSdram);
 	tmp1=(SDRAM+tmp1Sdram);
 	tmp2=(SDRAM+tmp2Sdram);
+	tmp3=(SDRAM+tmp3Sdram);
 
 	preprocessing_vmem_setEntry(imgSdram, imgSize, imgDatasetId, img);
 	preprocessing_vmem_setEntry(centersSdram, centersSize, centersDatasetId, centers);
 	preprocessing_vmem_setEntry(tmp1Sdram, tmp1Size, tmp1DatasetId, tmp1);
 	preprocessing_vmem_setEntry(tmp2Sdram, tmp2Size, tmp2DatasetId, tmp2);
+	preprocessing_vmem_setEntry(tmp3Sdram, tmp3Size, tmp3DatasetId, tmp3);
 
 	preprocessing_vmem_print();
 
@@ -110,12 +117,12 @@ int main()
 		udp_loadImage(entriesOfNAND[index], ROWS, COLS, imgSdram);
 
 		//Binarize image
-		CHECK_STATUS(udp_binarize(imgSdram, tmp1Sdram, tmp2Sdram, ROWS, COLS, tmp2Sdram))
+		CHECK_STATUS(udp_binarize(imgSdram, tmp1Sdram, tmp2Sdram, tmp3Sdram, ROWS, COLS, tmp3Sdram))
 
 		for(double r=Rmin; r<Rmax; r+=STEP_HOUGH)
 		{
 
-			CHECK_STATUS( preprocessing_hough_accumulate(tmp2Sdram, tmp1Sdram, ROWS, COLS,
+			CHECK_STATUS( preprocessing_hough_accumulate(tmp3Sdram, tmp1Sdram, ROWS, COLS,
 						eve_fp_int2s32(CENTER_DIST, FP32_FWL), eve_fp_double2s32(STEP_HOUGH, FP32_FWL),eve_fp_double2s32(r, FP32_FWL),
 						(centers + index * (CENTERS_COLS)) ))
 		}
